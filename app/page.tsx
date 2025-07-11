@@ -1,15 +1,9 @@
+// page.tsx
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import MessageBubble from './components/message-button';
-
-// Define a type for your messages
-interface Message {
-  id: string;
-  text: string;
-  sender: 'user' | 'bot';
-  timestamp: string;
-}
+import { useChat, Message } from './context/chat-context'; // Import useChat hook and Message interface
 
 // Define the new, simpler structure of the API response
 interface RecommendationApiResponse {
@@ -21,17 +15,20 @@ interface GenericApiResponse {
 }
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { messages, addMessage, setMessages } = useChat(); // Use the useChat hook
   const [input, setInput] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
-    // Initial greeting message
-    setMessages([
-      { id: '1', text: 'Hello there! How can I assist you today? I can help find the right person for a project based on their skills and experience.', sender: 'bot', timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
-    ]);
-  }, []);
+    // Initial greeting message: Only add if there are no messages in the chat history
+    // This prevents adding it every time the component re-renders or on navigation if messages are loaded from localStorage
+    if (messages.length === 0) {
+      setMessages([
+        { id: '1', text: 'Hello there! How can I assist you today? I can help find the right person for a project based on their skills and experience.', sender: 'bot', timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
+      ]);
+    }
+  }, [messages, setMessages]); // Add messages and setMessages to dependency array
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -48,18 +45,18 @@ export default function ChatPage() {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    setMessages((prevMessages) => [...prevMessages, newMessage]);
+    addMessage(newMessage); // Use addMessage from context
     setInput('');
     setIsLoading(true);
 
     try {
       // --- Call your new Generic API Route ---
       const responseGeneric = await fetch('/api/generic-request', {
-        method: 'POST', // Assuming your generic-request endpoint is a POST
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: newMessage.text }), // Pass the user's message
+        body: JSON.stringify({ message: newMessage.text }),
       });
 
       if (!responseGeneric.ok) {
@@ -68,7 +65,7 @@ export default function ChatPage() {
       }
 
       const genericData: GenericApiResponse = await responseGeneric.json();
-      const genericAnswer = genericData.answer; // Get the answer from the generic API
+      const genericAnswer = genericData.answer;
 
       // --- Call your existing Data Extraction API Route ---
       const responseExtract = await fetch('/api/extract-data', {
@@ -85,7 +82,7 @@ export default function ChatPage() {
       }
 
       const dataExtract: RecommendationApiResponse = await responseExtract.json();
-      const recommendationText = dataExtract.recommendation; // Get the recommendation from the extraction API
+      const recommendationText = dataExtract.recommendation;
 
       // --- Concatenate the responses with a divisor ---
       const combinedText =
@@ -95,11 +92,11 @@ export default function ChatPage() {
 
       const botResponse: Message = {
         id: Date.now().toString() + '-bot',
-        text: combinedText, // Use the combined text
+        text: combinedText,
         sender: 'bot',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
-      setMessages((prevMessages) => [...prevMessages, botResponse]);
+      addMessage(botResponse); // Use addMessage from context
 
     } catch (error) {
       console.error('Error sending message to API:', error);
@@ -109,11 +106,11 @@ export default function ChatPage() {
         sender: 'bot',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
-      setMessages((prevMessages) => [...prevMessages, errorBotResponse]);
+      addMessage(errorBotResponse); // Use addMessage from context
     } finally {
       setIsLoading(false);
     }
-  };
+  }; // CLOSING CURLY BRACE FOR handleSendMessage - IMPORTANT FIX!
 
   return (
     <main className="h-screen flex flex-col">
@@ -128,7 +125,14 @@ export default function ChatPage() {
           <MessageBubble key={message.id} message={message} />
         ))}
         {isLoading && (
-          <MessageBubble message={{ id: 'loading', text: 'Finding the best candidates...', sender: 'bot', timestamp: '' }} />
+          <MessageBubble
+            message={{
+              id: 'loading',
+              text: 'Finding the best answer and candidates...',
+              sender: 'bot',
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), // Added timestamp
+            }}
+          />
         )}
         <div ref={messagesEndRef} />
       </section>
