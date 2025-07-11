@@ -1,6 +1,8 @@
 'use client'; // This is a Client Component, essential for using useState and useEffect
 
 import React, { useState, useEffect, useRef } from 'react';
+import MessageBubble from './components/MessageBubble'
+
 
 // Define a type for your messages
 interface Message {
@@ -68,28 +70,8 @@ export default function ChatPage() {
 
       {/* Chat Messages Area */}
       <main className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-xs sm:max-w-md lg:max-w-lg p-3 rounded-lg shadow-md relative ${
-                message.sender === 'user'
-                  ? 'bg-blue-600 text-white rounded-br-none' // User message bubble style
-                  : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 rounded-bl-none' // Bot message bubble style
-              }`}
-            >
-              <p className="text-sm break-words">{message.text}</p>
-              <span
-                className={`text-xs mt-1 block ${
-                  message.sender === 'user' ? 'text-blue-200' : 'text-gray-500 dark:text-gray-400'
-                }`}
-              >
-                {message.timestamp}
-              </span>
-            </div>
-          </div>
+        {messages.map((message, index) => (
+          <MessageBubble key={index} message={message} />
         ))}
         {/* This empty div helps in scrolling to the bottom of the chat */}
         <div ref={messagesEndRef} />
