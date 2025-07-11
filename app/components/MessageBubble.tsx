@@ -43,20 +43,15 @@ const MessageBubble = ({ message }) => {
             {expanded ? 'Show less ▲' : 'Show more ▼'}
           </button>
         )}
-console.log('Timestamp:', message.timestamp);
-console.log('Date:', new Date(message.timestamp));
         {/* Timestamp */}
         <time
           dateTime={message.timestamp}
-          title={new Date(message.timestamp).toLocaleString()}
+          title={message.timestamp}
           className={`text-[11px] mt-1 block text-right clear-both ${
             isUser ? 'text-blue-200' : 'text-gray-500 dark:text-gray-400'
           }`}
         >
-          {new Date(message.timestamp).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
+          {message.timestamp}
         </time>
       </div>
     </motion.div>
