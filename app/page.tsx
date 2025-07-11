@@ -1,7 +1,7 @@
 'use client'; // This is a Client Component, essential for using useState and useEffect
 
 import React, { useState, useEffect, useRef } from 'react';
-import MessageBubble from './components/MessageBubble'
+import MessageBubble from './components/message-button'
 
 
 // Define a type for your messages
@@ -61,21 +61,21 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
+    <main className="h-screen flex flex-col">
       {/* Chat Header */}
       <header className="bg-white dark:bg-gray-800 p-4 shadow-md flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Routify</h1>
+        <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Welcome to routify!</h1>
         {/* You could add a user avatar, settings, or other icons here */}
       </header>
 
       {/* Chat Messages Area */}
-      <main className="flex-1 overflow-y-auto p-4 space-y-4">
+      <section className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message, index) => (
           <MessageBubble key={index} message={message} />
         ))}
         {/* This empty div helps in scrolling to the bottom of the chat */}
         <div ref={messagesEndRef} />
-      </main>
+      </section>
 
       {/* Chat Input Area */}
       <footer className="bg-white dark:bg-gray-800 p-4 shadow-t-md">
@@ -95,6 +95,6 @@ export default function ChatPage() {
           </button>
         </form>
       </footer>
-    </div>
+    </main>
   );
 }
