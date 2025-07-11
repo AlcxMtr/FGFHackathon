@@ -25,7 +25,7 @@ const MessageBubble = ({ message }) => {
         {/* Message text with manual 3-line clamp */}
         <p
           className={`text-sm md:text-base leading-relaxed break-words whitespace-pre-wrap overflow-hidden transition-all duration-200 ease-in-out ${
-            expanded ? '' : 'max-h-[4.5em]'
+            expanded ? '' : 'max-h-[5.25em]' // Increased max-height
           }`}
           style={!expanded ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' } : {}}
         >

@@ -1,79 +1,135 @@
-'use client'; // This is a Client Component, essential for using useState and useEffect
+'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import MessageBubble from './components/message-button'
-
+import MessageBubble from './components/message-button';
 
 // Define a type for your messages
 interface Message {
   id: string;
   text: string;
-  sender: 'user' | 'bot'; // 'user' for messages sent by the user, 'bot' for AI responses
-  timestamp: string; // Time the message was sent/received (e.g., "10:00 AM")
+  sender: 'user' | 'bot';
+  timestamp: string;
+}
+
+// Define the new, simpler structure of the API response
+interface RecommendationApiResponse {
+  recommendation: string;
+}
+
+interface GenericApiResponse {
+  answer: string;
 }
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>([]); // State to hold all chat messages
-  const [input, setInput] = useState<string>(''); // State for the current message in the input field
-  const messagesEndRef = useRef<HTMLDivElement>(null); // Ref to scroll the chat to the bottom
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState<string>('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Effect to load initial dummy messages when the component mounts
   useEffect(() => {
+    // Initial greeting message
     setMessages([
-      { id: '1', text: 'Hello there! How can I assist you today?', sender: 'bot', timestamp: '8:05 AM' },
-      { id: '2', text: 'Tell me about the weather in Toronto.', sender: 'user', timestamp: '8:06 AM' },
+      { id: '1', text: 'Hello there! How can I assist you today? I can help find the right person for a project based on their skills and experience.', sender: 'bot', timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
     ]);
   }, []);
 
-  // Effect to scroll to the latest message whenever messages are updated
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Handler for sending a message
   const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault(); // Prevent default form submission behavior (page reload)
-    if (input.trim() === '') return; // Don't send empty messages
+    e.preventDefault();
+    if (input.trim() === '' || isLoading) return;
 
     const newMessage: Message = {
-      id: Date.now().toString(), // Unique ID for the message
+      id: Date.now().toString(),
       text: input,
       sender: 'user',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
-    // Add the new user message to the chat
     setMessages((prevMessages) => [...prevMessages, newMessage]);
-    setInput(''); // Clear the input field
+    setInput('');
+    setIsLoading(true);
 
-    // --- Simulate an AI response ---
-    // In a real application, you would send `newMessage.text` to your backend/AI API here.
-    // The AI's actual response would then be added to the messages state.
-    setTimeout(() => {
+    try {
+      // --- Call your new Generic API Route ---
+      const responseGeneric = await fetch('/api/generic-request', {
+        method: 'POST', // Assuming your generic-request endpoint is a POST
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: newMessage.text }), // Pass the user's message
+      });
+
+      if (!responseGeneric.ok) {
+        const errorData = await responseGeneric.json();
+        throw new Error(errorData.error || 'Failed to fetch data from generic API');
+      }
+
+      const genericData: GenericApiResponse = await responseGeneric.json();
+      const genericAnswer = genericData.answer; // Get the answer from the generic API
+
+      // --- Call your existing Data Extraction API Route ---
+      const responseExtract = await fetch('/api/extract-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: newMessage.text }),
+      });
+
+      if (!responseExtract.ok) {
+        const errorData = await responseExtract.json();
+        throw new Error(errorData.error || 'Failed to fetch data from extraction API');
+      }
+
+      const dataExtract: RecommendationApiResponse = await responseExtract.json();
+      const recommendationText = dataExtract.recommendation; // Get the recommendation from the extraction API
+
+      // --- Concatenate the responses with a divisor ---
+      const combinedText =
+        `${genericAnswer}\n\n` +
+        `----------------------------------------------\n\n` +
+        `${recommendationText}`;
+
       const botResponse: Message = {
         id: Date.now().toString() + '-bot',
-        text: `I'm a demo bot! You asked: "${newMessage.text}". I cannot provide live weather, but it's currently 8:11 AM on Friday, July 11, 2025 in Toronto, Ontario, Canada.`,
+        text: combinedText, // Use the combined text
         sender: 'bot',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prevMessages) => [...prevMessages, botResponse]);
-    }, 1000); // Simulate a 1-second delay for the bot to "type"
+
+    } catch (error) {
+      console.error('Error sending message to API:', error);
+      const errorBotResponse: Message = {
+        id: Date.now().toString() + '-error',
+        text: `Error: Could not get a response. Please try again.`,
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      };
+      setMessages((prevMessages) => [...prevMessages, errorBotResponse]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <main className="h-screen flex flex-col">
       {/* Chat Header */}
       <header className="bg-white dark:bg-gray-800 p-4 shadow-md flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Welcome to routify!</h1>
-        {/* You could add a user avatar, settings, or other icons here */}
+        <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Routify Assistant</h1>
       </header>
 
       {/* Chat Messages Area */}
       <section className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message, index) => (
-          <MessageBubble key={index} message={message} />
+        {messages.map((message) => (
+          <MessageBubble key={message.id} message={message} />
         ))}
-        {/* This empty div helps in scrolling to the bottom of the chat */}
+        {isLoading && (
+          <MessageBubble message={{ id: 'loading', text: 'Finding the best candidates...', sender: 'bot', timestamp: '' }} />
+        )}
         <div ref={messagesEndRef} />
       </section>
 
@@ -84,14 +140,16 @@ export default function ChatPage() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
+            placeholder="e.g., I need a JS developer for the mobile app..."
             className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            disabled={isLoading}
           />
           <button
             type="submit"
-            className="px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-400"
+            disabled={isLoading}
           >
-            Send
+            {isLoading ? 'Sending...' : 'Send'}
           </button>
         </form>
       </footer>
