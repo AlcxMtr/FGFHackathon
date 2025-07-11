@@ -4,7 +4,7 @@
 import React, {
   createContext,
   useState,
-  useEffect,
+  useEffect, // useEffect is still needed for the initial greeting logic in ChatPage
   useContext,
   ReactNode,
 } from 'react';
@@ -22,7 +22,6 @@ interface ChatContextType {
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   addMessage: (message: Message) => void;
-  // You can add other functions here like clearChat, etc.
 }
 
 // Create the context with a default undefined value
@@ -34,21 +33,11 @@ interface ChatProviderProps {
 }
 
 export function ChatProvider({ children }: ChatProviderProps) {
-  // Initialize messages state from localStorage or an empty array
-  const [messages, setMessages] = useState<Message[]>(() => {
-    if (typeof window !== 'undefined') { // Check if window is defined (client-side)
-      const savedMessages = localStorage.getItem('chatMessages');
-      return savedMessages ? JSON.parse(savedMessages) : [];
-    }
-    return [];
-  });
+  // Initialize messages state as an empty array.
+  // This means messages will be reset whenever ChatProvider mounts (e.g., on full page refresh).
+  const [messages, setMessages] = useState<Message[]>([]);
 
-  // Effect to save messages to localStorage whenever they change
-  useEffect(() => {
-    if (typeof window !== 'undefined') { // Check if window is defined (client-side)
-      localStorage.setItem('chatMessages', JSON.stringify(messages));
-    }
-  }, [messages]);
+  // Removed the useEffect for localStorage saving/loading.
 
   // Helper function to add a message
   const addMessage = (message: Message) => {
