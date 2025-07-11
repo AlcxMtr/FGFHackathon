@@ -50,37 +50,37 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
-      // --- Call your new Generic API Route ---
-      const responseGeneric = await fetch('/api/generic-request', {
+      setIsLoading(true); // Set loading state before starting parallel requests
+
+      // Start both fetch requests in parallel
+      const genericPromise = fetch('/api/generic-request', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: newMessage.text }),
       });
 
+      const extractPromise = fetch('/api/extract-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: newMessage.text }),
+      });
+
+      // Wait for both promises to resolve
+      const [responseGeneric, responseExtract] = await Promise.all([genericPromise, extractPromise]);
+
+      // Handle generic response
       if (!responseGeneric.ok) {
         const errorData = await responseGeneric.json();
         throw new Error(errorData.error || 'Failed to fetch data from generic API');
       }
-
       const genericData: GenericApiResponse = await responseGeneric.json();
       const genericAnswer = genericData.answer;
 
-      // --- Call your existing Data Extraction API Route ---
-      const responseExtract = await fetch('/api/extract-data', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message: newMessage.text }),
-      });
-
+      // Handle extraction response
       if (!responseExtract.ok) {
         const errorData = await responseExtract.json();
         throw new Error(errorData.error || 'Failed to fetch data from extraction API');
       }
-
       const dataExtract: RecommendationApiResponse = await responseExtract.json();
       const recommendationText = dataExtract.recommendation;
 
@@ -96,7 +96,7 @@ export default function ChatPage() {
         sender: 'bot',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
-      addMessage(botResponse); // Use addMessage from context
+      addMessage(botResponse);
 
     } catch (error) {
       console.error('Error sending message to API:', error);
@@ -106,7 +106,7 @@ export default function ChatPage() {
         sender: 'bot',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
-      addMessage(errorBotResponse); // Use addMessage from context
+      addMessage(errorBotResponse);
     } finally {
       setIsLoading(false);
     }
