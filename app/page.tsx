@@ -64,7 +64,7 @@ export default function ChatPage() {
     <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
       {/* Chat Header */}
       <header className="bg-white dark:bg-gray-800 p-4 shadow-md flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">AI Chatbot Demo</h1>
+        <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Routify</h1>
         {/* You could add a user avatar, settings, or other icons here */}
       </header>
 
